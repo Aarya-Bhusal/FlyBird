@@ -220,7 +220,7 @@ def game(screen, event):
                 game_over = True
 
         # Check if the bird is out of screen:
-        if bird_y>GAME_HEIGHT or bird_y<0:
+        if bird_y>(GAME_HEIGHT+BIRD_HEIGHT) or bird_y<(0-BIRD_HEIGHT):
             pygame.mixer.music.pause()
             gameover_sound.play()
             game_over = True
