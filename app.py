@@ -8,6 +8,7 @@ GAME_WIDTH = 700
 BIRD_HEIGHT = 50
 BIRD_WIDTH = 75
 PILLAR_WIDTH = 50
+VERTICAL_PILLAR_GAP = 200
 FONT_SIZE = 44
 
 # Load all the necessary images
@@ -64,20 +65,20 @@ difficulties = ["Easy", "Normal", "Hard"]
 difficulty = "Normal"
 music = True
 pillars = [
-    (100, randint(100, int(70/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255))),
-    (400, randint(100, int(70/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255))),
-    (700, randint(100, int(70/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255)))
+    (100, randint(0, int(70/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255))),
+    (400, randint(0, int(70/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255))),
+    (700, randint(0, int(70/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255)))
         ]
 game_over = False
-bird_x, bird_y = 50, 10
+bird_x, bird_y = 100+PILLAR_WIDTH, 10
 score = 0
-game_speed = 0.15
+game_speed = 0.08
 jump_sound = pygame.mixer.Sound("assets/sounds/jump.mp3")
 gameover_sound = pygame.mixer.Sound("assets/sounds/game_over.mp3")
 
 # Create a function to display the home page
 def show_home(screen, events):
-    global running, game_screen, setting_window, difficulty, music, bird, bird_y, game_over, game_speed, score, gameover_msg_text
+    global running, game_screen, setting_window, difficulty, music, bird, bird_y, game_over, game_speed, score, gameover_msg_text, pillars
 
     # Play the music if music is on
     if music:
@@ -100,12 +101,15 @@ def show_home(screen, events):
     screen.blit(quit_text,quit_text_rect)
 
     # Show the high score
-    with open("assets/highest_score.txt", "r+") as file:
-        highest_score = file.read()
-        if highest_score == '' : highest_score = 0
-        else: highest_score = int(highest_score)
-    highest_score_text = score_font.render(f"Highest Score : {highest_score}", True, (255,255,255))
-    screen.blit(highest_score_text, (5,5))
+    try:
+        with open("assets/highest_score.txt", "r+") as file:
+            highest_score = file.read()
+            if highest_score == '' : highest_score = 0
+            else: highest_score = int(highest_score)
+        highest_score_text = score_font.render(f"Highest Score : {highest_score}", True, (255,255,255))
+        screen.blit(highest_score_text, (5,5))
+    except Exception as e:
+        print("Error reading high socre.")
 
     # Show the settings windows
     if setting_window:
@@ -134,6 +138,11 @@ def show_home(screen, events):
                     bird_y = 10
                     game_over = False
                     score = 0
+                    pillars = [
+                            (100, randint(0, int(70/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255))),
+                            (400, randint(0, int(70/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255))),
+                            (700, randint(0, int(70/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255)))
+                            ]
                     if music:
                         pygame.mixer.music.unpause()
                 elif settings_button.collidepoint(pygame.mouse.get_pos()) and not setting_window:
@@ -146,11 +155,11 @@ def show_home(screen, events):
                     if i > 2: i = 0
                     difficulty = difficulties[i]
                     if difficulty == "Easy":
-                        game_speed = 0.1
+                        game_speed = 0.06
                     elif difficulty == "Normal":
-                        game_speed = 0.15
+                        game_speed = 0.08
                     else:
-                        game_speed = 0.18
+                        game_speed = 0.1
                 elif music_button.collidepoint(pygame.mouse.get_pos()) and setting_window:
                     music = False if music else True
                     if music:
@@ -165,15 +174,19 @@ def game(screen, event):
     global bird_x, bird_y, bird, game_screen, pillars, game_over, score, game_speed
 
     # Draw the bird and create a rectangle for bird to detect collision
-    bird_rect = pygame.rect.Rect(bird_x, bird_y, BIRD_WIDTH, BIRD_HEIGHT)
+    bird_rect = pygame.rect.Rect(bird_x+10, bird_y+10, BIRD_WIDTH-25, BIRD_HEIGHT-20)
     bird_img = pygame.transform.scale(bird, (BIRD_WIDTH,BIRD_HEIGHT))
     screen.blit(bird_img, (bird_x, bird_y))
 
     # Draw pillars
     for pillar in pillars:
-        pillar_y, pillar_height, pillar_color = pillar
-        pillar_rect = pygame.Rect(pillar_y, GAME_HEIGHT-pillar_height, PILLAR_WIDTH, pillar_height)
+        pillar_x, pillar_height, pillar_color = pillar
+
+        pillar_rect = pygame.Rect(pillar_x, GAME_HEIGHT-pillar_height, PILLAR_WIDTH, pillar_height)
         pygame.draw.rect(screen, pillar_color, pillar_rect)
+
+        up_side_down_pillar = pygame.Rect(pillar_x, 0, PILLAR_WIDTH, (GAME_HEIGHT-pillar_height)-VERTICAL_PILLAR_GAP)
+        pygame.draw.rect(screen, pillar_color, up_side_down_pillar)
 
     # Show Score
     score_text = score_font.render(f"Score: {score}", True, (255,255,255))
@@ -182,25 +195,26 @@ def game(screen, event):
     # Move the bird, pillars and detect colision
     if not game_over: 
         # Drag the bird down
-        bird_y += game_speed
+        bird_y += game_speed*1.5
 
         for index, pillar in enumerate(pillars):
             #Move pillars
-            pillar_y, pillar_height, pillar_color = pillar
-            pillar_y -= game_speed
-            if pillar_y<(0-PILLAR_WIDTH):
+            pillar_x, pillar_height, pillar_color = pillar
+            pillar_x -= game_speed
+            if pillar_x<(0-PILLAR_WIDTH):
                 score+=1
                 # Increase the game speed gradually
                 if score%20 == 0:
                     score += 0.1
-                pillar_y = pillars[index-1][0]+300
+                pillar_x = pillars[index-1][0]+300
                 pillar_height = randint(100, int(70/100 * GAME_HEIGHT))
                 pillar_color = (randint(0,255),randint(0,255),randint(0,255))
-            pillars[index] = (pillar_y, pillar_height, pillar_color)
+            pillars[index] = (pillar_x, pillar_height, pillar_color)
         
             #Detect Collision
-            pillar_rect = pygame.Rect(pillar_y, GAME_HEIGHT-pillar_height, PILLAR_WIDTH, pillar_height)
-            if pillar_rect.colliderect(bird_rect):
+            pillar_rect = pygame.Rect(pillar_x, GAME_HEIGHT-pillar_height, PILLAR_WIDTH, pillar_height)
+            up_side_down_pillar_rect = pygame.Rect(pillar_x, 0, PILLAR_WIDTH, (GAME_HEIGHT-pillar_height)-VERTICAL_PILLAR_GAP)
+            if pillar_rect.colliderect(bird_rect) or up_side_down_pillar_rect.colliderect(bird_rect):
                 pygame.mixer.music.pause()
                 gameover_sound.play()
                 game_over = True
@@ -231,9 +245,20 @@ def game(screen, event):
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     game_screen = False
+                    game_over = True
+
                 elif event.key == pygame.K_SPACE and not game_over:
                     jump_sound.play()
-                    bird_y -= 100
+                    bird_y -= 85
+                elif event.key == pygame.K_r and game_over:
+                    game_over = False
+                    bird_y = 10
+                    score = 0
+                    pillars = [
+                            (100, randint(0, int(70/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255))),
+                            (400, randint(0, int(70/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255))),
+                            (700, randint(0, int(70/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255)))
+                            ]
 
 # Run the game
 while running:
