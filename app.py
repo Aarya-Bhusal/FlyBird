@@ -1,11 +1,13 @@
 # Import all the necessary modules
 import pygame
+from random import randint
 
 # Define some constants
 GAME_HEIGHT = 500
 GAME_WIDTH = 700
 BIRD_HEIGHT = 50
 BIRD_WIDTH = 75
+PILLAR_WIDTH = 50
 
 # Load all the necessary images
 bird = pygame.image.load("assets/images/bird.png")
@@ -110,14 +112,23 @@ def show_home(screen, events):
                 elif quit_settings_button.collidepoint(pygame.mouse.get_pos()) and setting_window:
                     setting_window = False
 
+# Create some variables required for game
+pillar_y = 100
+pillar_height = randint(100, int(70/100 * GAME_HEIGHT))
+
 # Create the main game function
 def game(screen, event):
-    global bird_x, bird_y, bird, game_screen
+    global bird_x, bird_y, bird, game_screen, pillar_y, pillar_height
 
+    # Draw the bird and create a rectangle for bird to detect collision
     bird_rect = pygame.rect.Rect(bird_x, bird_y, BIRD_WIDTH, BIRD_HEIGHT)
-
+    pygame.draw.rect(screen, (255,255,255), bird_rect)
     bird_img = pygame.transform.scale(bird, (BIRD_WIDTH,BIRD_HEIGHT))
     screen.blit(bird_img, (bird_x, bird_y))
+
+    # Create pillars
+    pillar = pygame.Rect(pillar_y, GAME_HEIGHT-pillar_height, PILLAR_WIDTH, pillar_height)
+    pygame.draw.rect(screen, (255,255,255), pillar)
 
     for event in events:
         if event.type == pygame.KEYDOWN:
@@ -125,6 +136,14 @@ def game(screen, event):
                 game_screen = False
             elif event.key == pygame.K_SPACE:
                 bird_y -= 100
+
+    # Move the pillars
+    pillar_y -= 0.1
+
+    # Create a new pillar if old pillars pass away form screen
+    if pillar_y<(0-PILLAR_WIDTH):
+        pillar_height = randint(100, int(70/100 * GAME_HEIGHT))
+        pillar_y = GAME_WIDTH
 
 # Run the game
 while running:
