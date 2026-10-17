@@ -8,6 +8,7 @@ GAME_WIDTH = 700
 BIRD_HEIGHT = 50
 BIRD_WIDTH = 75
 PILLAR_WIDTH = 50
+FONT_SIZE = 44
 
 # Load all the necessary images
 bird = pygame.image.load("assets/images/bird.png")
@@ -19,9 +20,9 @@ pygame.init()
 screen = pygame.display.set_mode((GAME_WIDTH, GAME_HEIGHT))
 pygame.display.set_caption("FlyBird")
 pygame.display.set_icon(bird)
-font = pygame.font.Font(r"assets\fonts\cursive.ttf", 44)
+font = pygame.font.Font(r"assets\fonts\cursive.ttf", FONT_SIZE)
 
-# Create all the necessary buttons and texts for home screen
+# Create all the necessary buttons and texts
 play_button = pygame.Rect(275, 170, 160, 50)
 play_text = font.render("Play", True, (255, 255, 255))
 play_text_rect = play_text.get_rect(center=play_button.center)
@@ -45,6 +46,8 @@ quit_settings_button = pygame.Rect(150, 320, 400, 75)
 quit_settings_text = font.render("Quit", True, (255, 255, 255))
 quit_settings_text_rect = quit_settings_text.get_rect(center=quit_settings_button.center)
 
+gameover_text = font.render("Game Over!", True, (255,77,77))
+
 # Game variables
 running = True
 game_screen = False
@@ -56,7 +59,7 @@ bird_x, bird_y = 50, 10
 
 # Create a function to display the home page
 def show_home(screen, events):
-    global running, game_screen, setting_window, difficulty, music, bird, bird_y
+    global running, game_screen, setting_window, difficulty, music, bird, bird_y, game_over
     # Show the logo
     bird_logo = pygame.transform.scale(bird, (125,100))
     screen.blit(bird_logo, (450, 200))
@@ -98,6 +101,7 @@ def show_home(screen, events):
                 if play_button.collidepoint(pygame.mouse.get_pos()) and not setting_window:
                     game_screen = True
                     bird_y = 10
+                    game_over = False
                 elif settings_button.collidepoint(pygame.mouse.get_pos()) and not setting_window:
                     setting_window = True
                 elif quit_button.collidepoint(pygame.mouse.get_pos()) and not setting_window:
@@ -113,37 +117,55 @@ def show_home(screen, events):
                     setting_window = False
 
 # Create some variables required for game
-pillar_y = 100
-pillar_height = randint(100, int(70/100 * GAME_HEIGHT))
-
+pillars = [
+           (100, randint(100, int(70/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255))),
+           (400, randint(100, int(70/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255))),
+           (700, randint(100, int(70/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255)))
+           ]
+game_over = False
 # Create the main game function
 def game(screen, event):
-    global bird_x, bird_y, bird, game_screen, pillar_y, pillar_height
+    global bird_x, bird_y, bird, game_screen, pillars, game_over
 
     # Draw the bird and create a rectangle for bird to detect collision
     bird_rect = pygame.rect.Rect(bird_x, bird_y, BIRD_WIDTH, BIRD_HEIGHT)
-    pygame.draw.rect(screen, (255,255,255), bird_rect)
     bird_img = pygame.transform.scale(bird, (BIRD_WIDTH,BIRD_HEIGHT))
     screen.blit(bird_img, (bird_x, bird_y))
 
-    # Create pillars
-    pillar = pygame.Rect(pillar_y, GAME_HEIGHT-pillar_height, PILLAR_WIDTH, pillar_height)
-    pygame.draw.rect(screen, (255,255,255), pillar)
+    # Draw pillars
+    for pillar in pillars:
+        pillar_y, pillar_height, pillar_color = pillar
+        pillar_rect = pygame.Rect(pillar_y, GAME_HEIGHT-pillar_height, PILLAR_WIDTH, pillar_height)
+        pygame.draw.rect(screen, pillar_color, pillar_rect)
 
     for event in events:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 game_screen = False
-            elif event.key == pygame.K_SPACE:
+            elif event.key == pygame.K_SPACE and not game_over:
                 bird_y -= 100
 
-    # Move the pillars
-    pillar_y -= 0.1
+    # Move the bird, pillars and detect colision
+    if not game_over: 
+        # Drag the bird down
+        bird_y += 0.1
 
-    # Create a new pillar if old pillars pass away form screen
-    if pillar_y<(0-PILLAR_WIDTH):
-        pillar_height = randint(100, int(70/100 * GAME_HEIGHT))
-        pillar_y = GAME_WIDTH
+        for index, pillar in enumerate(pillars):
+            #Move pillars
+            pillar_y, pillar_height, pillar_color = pillar
+            pillar_y -= 0.1
+            if pillar_y<(0-PILLAR_WIDTH):
+                pillar_y = pillars[index-1][0]+300
+                pillar_height = randint(100, int(70/100 * GAME_HEIGHT))
+                pillar_color = (randint(0,255),randint(0,255),randint(0,255))
+            pillars[index] = (pillar_y, pillar_height, pillar_color)
+        
+            #Detect Collision
+            pillar_rect = pygame.Rect(pillar_y, GAME_HEIGHT-pillar_height, PILLAR_WIDTH, pillar_height)
+            if pillar_rect.colliderect(bird_rect):
+                game_over = True
+    else:
+        screen.blit(gameover_text, (GAME_WIDTH//2-(FONT_SIZE*2), GAME_HEIGHT//2-FONT_SIZE))       
 
 # Run the game
 while running:
@@ -161,8 +183,6 @@ while running:
         show_home(screen, events)
     else:
         game(screen, events)
-        # Drag the bird down
-        bird_y += 0.1
 
     # Keep updating the game window
     pygame.display.flip()
