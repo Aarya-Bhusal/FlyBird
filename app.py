@@ -4,6 +4,8 @@ import pygame
 # Define some constants
 GAME_HEIGHT = 500
 GAME_WIDTH = 700
+BIRD_HEIGHT = 50
+BIRD_WIDTH = 75
 
 # Load all the necessary images
 bird = pygame.image.load("assets/images/bird.png")
@@ -48,10 +50,11 @@ setting_window = False
 difficulties = ["Easy", "Normal", "Hard"]
 difficulty = "Normal"
 music = True
+bird_x, bird_y = 50, 10
 
 # Create a function to display the home page
 def show_home(screen, events):
-    global running, game_screen, setting_window, difficulty, music
+    global running, game_screen, setting_window, difficulty, music, bird, bird_y
     # Show the logo
     bird_logo = pygame.transform.scale(bird, (125,100))
     screen.blit(bird_logo, (450, 200))
@@ -92,6 +95,7 @@ def show_home(screen, events):
             if event.button == 1:
                 if play_button.collidepoint(pygame.mouse.get_pos()) and not setting_window:
                     game_screen = True
+                    bird_y = 10
                 elif settings_button.collidepoint(pygame.mouse.get_pos()) and not setting_window:
                     setting_window = True
                 elif quit_button.collidepoint(pygame.mouse.get_pos()) and not setting_window:
@@ -105,6 +109,22 @@ def show_home(screen, events):
                     music = False if music else True
                 elif quit_settings_button.collidepoint(pygame.mouse.get_pos()) and setting_window:
                     setting_window = False
+
+# Create the main game function
+def game(screen, event):
+    global bird_x, bird_y, bird, game_screen
+
+    bird_rect = pygame.rect.Rect(bird_x, bird_y, BIRD_WIDTH, BIRD_HEIGHT)
+
+    bird_img = pygame.transform.scale(bird, (BIRD_WIDTH,BIRD_HEIGHT))
+    screen.blit(bird_img, (bird_x, bird_y))
+
+    for event in events:
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                game_screen = False
+            elif event.key == pygame.K_SPACE:
+                bird_y -= 100
 
 # Run the game
 while running:
@@ -121,7 +141,10 @@ while running:
     if not game_screen:
         show_home(screen, events)
     else:
-        pass
+        game(screen, events)
+        # Drag the bird down
+        bird_y += 0.1
+
     # Keep updating the game window
     pygame.display.flip()
 
