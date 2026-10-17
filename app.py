@@ -21,6 +21,7 @@ screen = pygame.display.set_mode((GAME_WIDTH, GAME_HEIGHT))
 pygame.display.set_caption("FlyBird")
 pygame.display.set_icon(bird)
 font = pygame.font.Font(r"assets\fonts\cursive.ttf", FONT_SIZE)
+score_font = pygame.font.Font(None, 30)
 
 # Create all the necessary buttons and texts
 play_button = pygame.Rect(275, 170, 160, 50)
@@ -55,11 +56,19 @@ setting_window = False
 difficulties = ["Easy", "Normal", "Hard"]
 difficulty = "Normal"
 music = True
+pillars = [
+    (100, randint(100, int(70/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255))),
+    (400, randint(100, int(70/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255))),
+    (700, randint(100, int(70/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255)))
+        ]
+game_over = False
 bird_x, bird_y = 50, 10
+score = 0
+game_speed = 0.15
 
 # Create a function to display the home page
 def show_home(screen, events):
-    global running, game_screen, setting_window, difficulty, music, bird, bird_y, game_over
+    global running, game_screen, setting_window, difficulty, music, bird, bird_y, game_over, game_speed
     # Show the logo
     bird_logo = pygame.transform.scale(bird, (125,100))
     screen.blit(bird_logo, (450, 200))
@@ -111,21 +120,20 @@ def show_home(screen, events):
                     i+=1
                     if i > 2: i = 0
                     difficulty = difficulties[i]
+                    if difficulty == "Easy":
+                        game_speed = 0.1
+                    elif difficulty == "Normal":
+                        game_speed = 0.15
+                    else:
+                        game_speed = 0.18
                 elif music_button.collidepoint(pygame.mouse.get_pos()) and setting_window:
                     music = False if music else True
                 elif quit_settings_button.collidepoint(pygame.mouse.get_pos()) and setting_window:
                     setting_window = False
 
-# Create some variables required for game
-pillars = [
-           (100, randint(100, int(70/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255))),
-           (400, randint(100, int(70/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255))),
-           (700, randint(100, int(70/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255)))
-           ]
-game_over = False
 # Create the main game function
 def game(screen, event):
-    global bird_x, bird_y, bird, game_screen, pillars, game_over
+    global bird_x, bird_y, bird, game_screen, pillars, game_over, score,game_speed
 
     # Draw the bird and create a rectangle for bird to detect collision
     bird_rect = pygame.rect.Rect(bird_x, bird_y, BIRD_WIDTH, BIRD_HEIGHT)
@@ -138,23 +146,21 @@ def game(screen, event):
         pillar_rect = pygame.Rect(pillar_y, GAME_HEIGHT-pillar_height, PILLAR_WIDTH, pillar_height)
         pygame.draw.rect(screen, pillar_color, pillar_rect)
 
-    for event in events:
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                game_screen = False
-            elif event.key == pygame.K_SPACE and not game_over:
-                bird_y -= 100
+    # Show Score
+    score_text = score_font.render(f"Score: {score}", True, (255,255,255))
+    screen.blit(score_text, (5,5))
 
     # Move the bird, pillars and detect colision
     if not game_over: 
         # Drag the bird down
-        bird_y += 0.1
+        bird_y += game_speed
 
         for index, pillar in enumerate(pillars):
             #Move pillars
             pillar_y, pillar_height, pillar_color = pillar
-            pillar_y -= 0.1
+            pillar_y -= game_speed
             if pillar_y<(0-PILLAR_WIDTH):
+                score+=1
                 pillar_y = pillars[index-1][0]+300
                 pillar_height = randint(100, int(70/100 * GAME_HEIGHT))
                 pillar_color = (randint(0,255),randint(0,255),randint(0,255))
@@ -165,7 +171,14 @@ def game(screen, event):
             if pillar_rect.colliderect(bird_rect):
                 game_over = True
     else:
-        screen.blit(gameover_text, (GAME_WIDTH//2-(FONT_SIZE*2), GAME_HEIGHT//2-FONT_SIZE))       
+        screen.blit(gameover_text, (GAME_WIDTH//2-(FONT_SIZE*2), GAME_HEIGHT//2-FONT_SIZE))
+
+    for event in events:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    game_screen = False
+                elif event.key == pygame.K_SPACE and not game_over:
+                    bird_y -= 100      
 
 # Run the game
 while running:
