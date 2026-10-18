@@ -58,8 +58,9 @@ class Game:
         self.clock = pygame.time.Clock()
         self.screen = pygame.display.set_mode((GAME_WIDTH, GAME_HEIGHT))
         self.darkness = pygame.Surface((GAME_WIDTH, GAME_HEIGHT), pygame.SRCALPHA)
-        self.darkness_level = 180 
+        self.darkness_level = 0 
         self.day = True 
+        self.pause_status = False
 
         # Get the highest score
         try:
@@ -211,7 +212,7 @@ class Game:
             if coin_status:
                 self.screen.blit(COIN, (pillar_x, (pillar_y+(pillar_y-VERTICAL_PILLAR_GAP))//2))
 
-            if not self.game_over:
+            if not self.game_over and not self.pause_status:
                 #Move pillars
                 pillar_x -= self.game_speed
                 if pillar_x<(0-PILLAR_WIDTH):
@@ -255,7 +256,7 @@ class Game:
                         self.pillars[index] = (pillar_x, pillar_height, pillar_color, coin_status)
         
         # Move the bird, pillars and detect colision
-        if not self.game_over: 
+        if not self.game_over and not self.pause_status: 
             # Drag the bird down
             self.bird_y += self.game_speed*1.5
 
@@ -264,7 +265,7 @@ class Game:
                 pygame.mixer.music.pause()
                 self.gameover_sound.play()
                 self.game_over = True
-        else:
+        elif self.game_over:
             self.screen.blit(gameover_text, (GAME_WIDTH//2-(FONT_SIZE*2.5), GAME_HEIGHT//4))
             self.screen.blit(gameover_msg_text1, (GAME_WIDTH//2-(FONT_SIZE*2.5), GAME_HEIGHT//2.5))
             self.screen.blit(gameover_msg_text2, (GAME_WIDTH//2-(FONT_SIZE*2.5), GAME_HEIGHT//2))
@@ -304,11 +305,23 @@ class Game:
                         self.reset_game()
                         self.game_screen = False
         
-                    elif event.key == pygame.K_SPACE and not self.game_over:
+                    elif event.key == pygame.K_SPACE and not self.game_over and not self.pause_status:
                         self.jump_sound.play()
-                        self.bird_y -= 100
+                        if self.difficulty == "Easy":
+                            self.bird_y -= 75
+                        elif self.difficulty == "Normal":
+                            self.bird_y-=100
+                        else:
+                            self.bird_y-=125
                     elif event.key == pygame.K_r and self.game_over:
+                        self.coins_had += self.coins
                         self.reset_game()
+
+                    elif event.key == pygame.K_p:
+                        if not self.pause_status:
+                            self.pause_status = True
+                        else:
+                            self.pause_status = False
 
     def run(self):
         while self.running:

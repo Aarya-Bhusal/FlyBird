@@ -6,7 +6,7 @@ FONT_SIZE = 44
 # Load all the necessary images
 bird = pygame.image.load("assets/images/bird.png")
 background = pygame.image.load("assets/images/background.jpg")
-coin = pygame.image.load("assets/images/coin.webp")
+coin = pygame.image.load("assets/images/coin.png")
 
 # Create all the necessary buttons and texts
 
