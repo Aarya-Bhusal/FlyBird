@@ -54,8 +54,12 @@ class Game:
         self.game_speed = self.difficulty_speed[self.difficulty]
         self.jump_sound = pygame.mixer.Sound("assets/sounds/jump.mp3")
         self.gameover_sound = pygame.mixer.Sound("assets/sounds/game_over.mp3")
+        self.coin_collect_sound = pygame.mixer.Sound("assets/sounds/coin_collect.mp3")
         self.clock = pygame.time.Clock()
         self.screen = pygame.display.set_mode((GAME_WIDTH, GAME_HEIGHT))
+        self.darkness = pygame.Surface((GAME_WIDTH, GAME_HEIGHT), pygame.SRCALPHA)
+        self.darkness_level = 180 
+        self.day = True 
 
         # Get the highest score
         try:
@@ -89,6 +93,7 @@ class Game:
     def reset_game(self):
         self.game_over = False
         self.score = 0
+        self.coins = 0
         self.game_speed = self.difficulty_speed[self.difficulty]
         self.bird_y = 10
         self.pillars = [
@@ -211,6 +216,16 @@ class Game:
                 pillar_x -= self.game_speed
                 if pillar_x<(0-PILLAR_WIDTH):
                     self.score+=1
+                    # Change the day night cycle
+                    if self.score%3==0:
+                        if self.day:
+                            self.darkness_level += 5
+                            if self.darkness_level>=220:
+                                self.day = False
+                        else:
+                            self.darkness_level -= 20
+                            if self.darkness_level<=10:
+                                self.day = True
                     # Increase the game speed gradually
                     if self.score%10 == 0:
                         self.game_speed += 0.5
@@ -234,6 +249,7 @@ class Game:
                 if coin_status:
                     coin_rect = pygame.Rect(pillar_x, (pillar_y+(pillar_y-VERTICAL_PILLAR_GAP))//2, 50, 50)
                     if coin_rect.colliderect(bird_rect):
+                        self.coin_collect_sound.play()
                         self.coins += 1
                         coin_status = False
                         self.pillars[index] = (pillar_x, pillar_height, pillar_color, coin_status)
@@ -290,7 +306,7 @@ class Game:
         
                     elif event.key == pygame.K_SPACE and not self.game_over:
                         self.jump_sound.play()
-                        self.bird_y -= 85
+                        self.bird_y -= 100
                     elif event.key == pygame.K_r and self.game_over:
                         self.reset_game()
 
@@ -304,6 +320,8 @@ class Game:
             
             # Set the background
             self.screen.blit(BACKGROUND, (0,0))
+            self.darkness.fill((10,15,45, self.darkness_level))
+            self.screen.blit(self.darkness, (0,0))
             
             # Show the home page
             if not self.game_screen:
