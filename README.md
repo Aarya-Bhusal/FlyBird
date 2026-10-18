@@ -10,3 +10,5 @@
 4. **Speed Increase** - The speed of the game gradually increases as the user's score increases.
 5. **Coins** - Users can now collect coins as they fly the bird.
 6. **Day Night Cycle** - Now there is a Day Night Cycle in the game. Tine gradually pass as teh user score and day turn into night and night turn into day. Days are more longer than night as it is easier to play in daytime. 
+
+**Note**:*Before running the exe file please make sure that the assets directory is in the same folder as app.exe*
