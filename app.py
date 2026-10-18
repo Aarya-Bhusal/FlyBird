@@ -1,7 +1,8 @@
 # Import all the necessary modules
 import pygame
 from random import randint
-from widgets import *
+from game_resources import *
+import json
 
 # Define some constants
 GAME_HEIGHT = 500
@@ -12,11 +13,8 @@ PILLAR_WIDTH = 50
 VERTICAL_PILLAR_GAP = 200
 FONT_SIZE = 44
 FRAME_RATE = 60
-
-# Load all the necessary images
-bird = pygame.image.load("assets/images/bird.png")
-background = pygame.image.load("assets/images/background.jpg")
-background = pygame.transform.scale(background, (GAME_WIDTH, GAME_HEIGHT))
+BACKGROUND = pygame.transform.scale(background, (GAME_WIDTH, GAME_HEIGHT))
+COIN = pygame.transform.scale(coin, (50,50))
 
 # Initialize pygame
 pygame.init()
@@ -27,7 +25,7 @@ pygame.mixer.music.set_volume(0.3)
 pygame.display.set_caption("FlyBird")
 pygame.display.set_icon(bird)
 font = pygame.font.Font("assets/fonts/cursive.ttf", FONT_SIZE)
-score_font = pygame.font.Font(None, 30)
+in_game_variable_font = pygame.font.Font(None, 30)
 
 # Create the game Class
 class Game:
@@ -45,46 +43,58 @@ class Game:
         }
         self.music = True
         self.pillars = [
-            (100, randint(0, int(60/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255))),
-            (400, randint(0, int(60/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255))),
-            (700, randint(0, int(60/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255)))
-                ]
+                (100, randint(0, int(60/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255)), False),
+                (400, randint(0, int(60/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255)), False),
+                (700, randint(0, int(60/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255)), False)
+                    ]
         self.game_over = False
         self.bird_x, self.bird_y = 100+PILLAR_WIDTH, 10
         self.score = 0
-        self.game_speed = 3
+        self.coins = 0
+        self.game_speed = self.difficulty_speed[self.difficulty]
         self.jump_sound = pygame.mixer.Sound("assets/sounds/jump.mp3")
         self.gameover_sound = pygame.mixer.Sound("assets/sounds/game_over.mp3")
         self.clock = pygame.time.Clock()
         self.screen = pygame.display.set_mode((GAME_WIDTH, GAME_HEIGHT))
 
-        with open("assets/highest_score.txt", "w+") as file:
-            highest_score = file.read()
-            if highest_score == '':
+        # Get the highest score
+        try:
+            with open("assets/json/highest_score.json", "r+") as file:
+                data = json.load(file)
+                highest_score = data["highest_score"]
+                highest_score = int(highest_score)
+                self.highest_score = highest_score
+        except Exception:
+            with open("assets/json/highest_score.json", "w") as file:
+                data = {"highest_score":0}
+                json.dump(data, file, indent=4)
                 self.highest_score = 0
-                file.seek(0)
-                file.truncate(0)
-                file.write('0')
-            else:
-                try:
-                    highest_score = int(highest_score)
-                    self.highest_score = highest_score
-                except Exception:
-                    self.highest_score = 0
-                    file.seek(0)
-                    file.truncate(0)
-                    file.write('0')
 
+        self.coins_had = self.get_user_coins()
 
+    def get_user_coins(self):
+        # Get the number of coins user has
+        try:
+            with open("assets/json/coins_had.json", "r+") as file:
+                data = json.load(file)
+                coins_had = data["coins_had"]
+                coins_had = int(coins_had)
+                return coins_had
+        except Exception:
+            with open("assets/json/coins_had.json", "w") as file:
+                data = {"coins_had":0}
+                json.dump(data, file, indent=4)
+                return 0
+    
     def reset_game(self):
         self.game_over = False
         self.score = 0
         self.game_speed = self.difficulty_speed[self.difficulty]
         self.bird_y = 10
         self.pillars = [
-                (100, randint(0, int(60/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255))),
-                (400, randint(0, int(60/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255))),
-                (700, randint(0, int(60/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255)))
+                (100, randint(0, int(60/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255)), False),
+                (400, randint(0, int(60/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255)), False),
+                (700, randint(0, int(60/100 * GAME_HEIGHT)), (randint(0,255),randint(0,255),randint(0,255)), False)
                     ]
         if self.music:
             pygame.mixer.music.unpause()
@@ -111,9 +121,16 @@ class Game:
         self.screen.blit(quit_text,quit_text_rect)
         
         # Show the high score
-        highest_score_text = score_font.render(f"Highest Score : {self.highest_score}", True, (255,255,255))
+        highest_score_text = in_game_variable_font.render(f"Highest Score : {self.highest_score}", True, (255,255,255))
         self.screen.blit(highest_score_text, (5,5))
-        
+
+        # Show the coins user has
+        self.coins_had = self.get_user_coins()
+        coins_had_text = in_game_variable_font.render(f": {self.coins_had}", True, (255,125,100))
+        coins_had_text_x = GAME_WIDTH-(50+8*len(f"{self.coins_had}"))
+        self.screen.blit(COIN, (coins_had_text_x-50, -5))
+        self.screen.blit(coins_had_text, (coins_had_text_x,5))
+
         # Show the settings windows
         if self.setting_window:
             pygame.draw.rect(self.screen, (245,234,214), settings_window_rect, border_radius=20)
@@ -163,35 +180,34 @@ class Game:
                     elif quit_settings_button.collidepoint(pygame.mouse.get_pos()) and self.setting_window:
                         self.setting_window = False
 
-    def show_game_window(self, events):
+    def play_game(self, events):
  
         # Draw the bird and create a rectangle for bird to detect collision
         bird_rect = pygame.rect.Rect(self.bird_x+10, self.bird_y+10, BIRD_WIDTH-25, BIRD_HEIGHT-20)
         bird_img = pygame.transform.scale(bird, (BIRD_WIDTH,BIRD_HEIGHT))
         self.screen.blit(bird_img, (self.bird_x, self.bird_y))
         
-        # Draw pillars
-        for pillar in self.pillars:
-            pillar_x, pillar_height, pillar_color = pillar
-        
-            pillar_rect = pygame.Rect(pillar_x, GAME_HEIGHT-pillar_height, PILLAR_WIDTH, pillar_height)
-            pygame.draw.rect(self.screen, pillar_color, pillar_rect)
-        
-            up_side_down_pillar = pygame.Rect(pillar_x, 0, PILLAR_WIDTH, (GAME_HEIGHT-pillar_height)-VERTICAL_PILLAR_GAP)
+        # Draw pillars and Coins
+        for index, pillar in enumerate(self.pillars):
+            pillar_x, pillar_height, pillar_color, coin_status = pillar
+
+            # Down Pillar
+            pillar_y = GAME_HEIGHT-pillar_height
+            pillar_rect = pygame.Rect(pillar_x, pillar_y, PILLAR_WIDTH, pillar_height)
+            pygame.draw.rect(self.screen, pillar_color, pillar_rect)  
+
+            # Up Pillar
+            up_side_down_pillar_y = 0
+            up_side_down_pillar_height = pillar_y-VERTICAL_PILLAR_GAP
+            up_side_down_pillar = pygame.Rect(pillar_x, up_side_down_pillar_y, PILLAR_WIDTH, up_side_down_pillar_height)
             pygame.draw.rect(self.screen, pillar_color, up_side_down_pillar)
-        
-        # Show Score
-        score_text = score_font.render(f"Score: {self.score}", True, (255,255,255))
-        self.screen.blit(score_text, (5,5))
-        
-        # Move the bird, pillars and detect colision
-        if not self.game_over: 
-            # Drag the bird down
-            self.bird_y += self.game_speed*1.5
-        
-            for index, pillar in enumerate(self.pillars):
+
+            # Coins
+            if coin_status:
+                self.screen.blit(COIN, (pillar_x, (pillar_y+(pillar_y-VERTICAL_PILLAR_GAP))//2))
+
+            if not self.game_over:
                 #Move pillars
-                pillar_x, pillar_height, pillar_color = pillar
                 pillar_x -= self.game_speed
                 if pillar_x<(0-PILLAR_WIDTH):
                     self.score+=1
@@ -201,16 +217,32 @@ class Game:
                     pillar_x = self.pillars[index-1][0]+300
                     pillar_height = randint(100, int(70/100 * GAME_HEIGHT))
                     pillar_color = (randint(0,255),randint(0,255),randint(0,255))
-                self.pillars[index] = (pillar_x, pillar_height, pillar_color)
-                
-                #Detect Collision
-                pillar_rect = pygame.Rect(pillar_x, GAME_HEIGHT-pillar_height, PILLAR_WIDTH, pillar_height)
-                up_side_down_pillar_rect = pygame.Rect(pillar_x, 0, PILLAR_WIDTH, (GAME_HEIGHT-pillar_height)-VERTICAL_PILLAR_GAP)
-                if pillar_rect.colliderect(bird_rect) or up_side_down_pillar_rect.colliderect(bird_rect):
+                    coin_luck = randint(0,50)
+                    if coin_luck%5 == 0:
+                        coin_status = True
+                    else:
+                        coin_status = False
+                self.pillars[index] = (pillar_x, pillar_height, pillar_color, coin_status)
+                                
+                # Detect Collision with pilars
+                if pillar_rect.colliderect(bird_rect) or up_side_down_pillar.colliderect(bird_rect):
                     pygame.mixer.music.pause()
                     self.gameover_sound.play()
                     self.game_over = True
+
+                # Detect Collision with coins
+                if coin_status:
+                    coin_rect = pygame.Rect(pillar_x, (pillar_y+(pillar_y-VERTICAL_PILLAR_GAP))//2, 50, 50)
+                    if coin_rect.colliderect(bird_rect):
+                        self.coins += 1
+                        coin_status = False
+                        self.pillars[index] = (pillar_x, pillar_height, pillar_color, coin_status)
         
+        # Move the bird, pillars and detect colision
+        if not self.game_over: 
+            # Drag the bird down
+            self.bird_y += self.game_speed*1.5
+
             # Check if the bird is out of screen:
             if self.bird_y>(GAME_HEIGHT+BIRD_HEIGHT) or self.bird_y<(0-BIRD_HEIGHT):
                 pygame.mixer.music.pause()
@@ -220,13 +252,34 @@ class Game:
             self.screen.blit(gameover_text, (GAME_WIDTH//2-(FONT_SIZE*2.5), GAME_HEIGHT//4))
             self.screen.blit(gameover_msg_text1, (GAME_WIDTH//2-(FONT_SIZE*2.5), GAME_HEIGHT//2.5))
             self.screen.blit(gameover_msg_text2, (GAME_WIDTH//2-(FONT_SIZE*2.5), GAME_HEIGHT//2))
-            try:
-                with open("assets/highest_score.txt", "w") as file:
-                    if self.score>self.highest_score:
-                        file.write(str(self.score))
+
+            # Update highest Score
+            if self.score>self.highest_score:
+                try:
+                    with open("assets/json/highest_score.json", "w") as file:
                         self.highest_score = self.score
+                        data = {"highest_score":self.score}
+                        json.dump(data, file, indent=4)
+                except Exception:
+                    print("Error")
+
+            # Update Coin had
+            try:
+                with open("assets/json/coins_had.json", "w") as file:
+                    data = {"coins_had":self.coins_had+self.coins}
+                    json.dump(data, file, indent=4)
             except Exception:
-                pass
+                print("Error")
+
+        # Show Score
+        score_text = in_game_variable_font.render(f"Score: {self.score}", True, (255,255,255))
+        self.screen.blit(score_text, (5,5))
+
+        # Show Coins
+        coins_text = in_game_variable_font.render(f": {self.coins}", True, (255,125,100))
+        coins_text_x = GAME_WIDTH-(50+8*len(f"{self.coins}"))
+        self.screen.blit(COIN, (coins_text_x-50, -5))
+        self.screen.blit(coins_text, (coins_text_x,5))
         
         # Detect user events
         for event in events:
@@ -250,13 +303,13 @@ class Game:
                         self.running = False
             
             # Set the background
-            self.screen.blit(background, (0,0))
+            self.screen.blit(BACKGROUND, (0,0))
             
             # Show the home page
             if not self.game_screen:
                 self.show_home(events)
             else:
-                self.show_game_window(events)
+                self.play_game(events)
             
             # Keep updating the game window
             pygame.display.flip()
