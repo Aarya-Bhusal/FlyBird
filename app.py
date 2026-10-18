@@ -58,7 +58,7 @@ class Game:
         self.clock = pygame.time.Clock()
         self.screen = pygame.display.set_mode((GAME_WIDTH, GAME_HEIGHT))
         self.darkness = pygame.Surface((GAME_WIDTH, GAME_HEIGHT), pygame.SRCALPHA)
-        self.darkness_level = 0 
+        self.darkness_level = 0
         self.day = True 
         self.pause_status = False
 
@@ -233,7 +233,7 @@ class Game:
                     pillar_x = self.pillars[index-1][0]+300
                     pillar_height = randint(100, int(70/100 * GAME_HEIGHT))
                     pillar_color = (randint(0,255),randint(0,255),randint(0,255))
-                    coin_luck = randint(0,50)
+                    coin_luck = randint(0,100)
                     if coin_luck%5 == 0:
                         coin_status = True
                     else:
